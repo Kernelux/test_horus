@@ -1,0 +1,6 @@
+class WldKeyPoint
+{
+  std::vector<std::vector<double>> histoByRegion;
+  cv::Point2f pt;
+  
+};

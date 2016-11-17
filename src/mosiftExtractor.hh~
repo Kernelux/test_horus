@@ -1,0 +1,43 @@
+#pragma once
+#include <opencv2/xfeatures2d.hpp>
+#include "mosift.hh"
+#include <iostream>
+
+class MosiftExtractor :
+{
+
+  // see descriptorextractor interface opencv 3.0
+public:
+  void compute(cv::InputArray image,
+               std::vector<cv::KeyPoint>& keypoints,
+               cv::OutputArray desc) override;
+
+private:
+  // Used for the flow (kind of diff between them)
+  cv::Mat previousFrame;
+  cv::Mat currentFrame;
+  // Used for grayscale
+  cv::Mat auxCurrent;
+  cv::Mat auxPrevious;
+  std::vector<cv::KeyPoint> keypoints;
+  cv::Mat desc = cv::Mat::zeros(previousFrame.size(), CV_32F);
+  std::vector<cv::Mat> totalFeatureOfVideo;
+  //Used for Motiondetection in mosift.
+  // Contains pyramid of previousframe
+  std::vector<cv::Mat> oldPyr;
+  // Contains pyramid of currentframe
+  std::vector<cv::Mat> newPyr;
+  // Aux matrix used to store flow
+  cv::Mat resFlow;
+  // Init of the first frame
+  int nbPyr = 3;
+  float sig_diff = sqrtf(fmax(1.6 * 1.6 - 0.5f * 0.5f * 4, 0.01f));
+  // flow between pyramids
+  std::vector<cv::Mat> pyrOptFlow;
+  std::vector<double> meanMov;
+  std::vector<double> stdMov;
+  MoSIFT mosift;
+  std::vector<std::vector<float>> features;
+  const static cv::Ptr<cv::Feature2D> sift;
+  bool created = false;
+};
