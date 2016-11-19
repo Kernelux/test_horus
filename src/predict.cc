@@ -18,79 +18,73 @@ Predict::Predict(std::vector<FileInfo> files)
 
 void Predict::predict(std::vector<FileInfo> files)
 {
-
     std::map<std::string, std::map<std::string, int>> confMatrix;
-    int count = 0;
-    //for (auto i = 0.0; i < files.size(); i++)
+    // for (auto i = 0.0; i < files.size(); i++)
+    //   {
     tbb::mutex confMatM;
     tbb::mutex countM;
-    tbb::parallel_for (size_t(0),files.size(), [&](size_t i)
+    CsvReader read;
+    cv::Mat voc = read("vocabulary.csv");
+    int ind = 1;
+    tbb::parallel_for(size_t(0),files.size(), [&](size_t i)
       {
-        cv::Ptr<cv::DescriptorMatcher> matcher(new cv::FlannBasedMatcher());
+        //cv::Ptr<cv::DescriptorMatcher> matcher(new cv::FlannBasedMatcher());
+        cv::Ptr<cv::DescriptorMatcher> matcher(new cv::BFMatcher(cv::NORM_L1));
         cv::Ptr<cv::DescriptorExtractor> mos = new Wld();
-        //cv::Ptr<cv::Feature2D> sift = cv::xfeatures2d::SIFT::create();
         cv::BOWImgDescriptorExtractor bowDE(mos, matcher);
-        CsvReader read;
-        bowDE.setVocabulary(read("vocabulary.csv"));
+        bowDE.setVocabulary(voc);
         std::vector<cv::KeyPoint> kp;
         cv::Mat curFrame;
         cv::Mat res;
         auto fileName = files.at(i).originalFileName;
         auto className = files.at(i).originalDirName;
         cv::VideoCapture v(files.at(i).originalPathName);
-        bool stop = false;
-        for (;!stop;)
+        auto countFight = 0.0;
+        auto countNoFight = 0.0;
+        auto framNum = 0.0;
+        for (;;)
           {
             v >> curFrame;
+
             if (curFrame.empty())
               break;
-
+            // imshow("t", curFrame);
+            // cv::waitKey(0);
             kp.resize(1);
             bowDE.compute(curFrame, kp, res);
-
             if (kp.size() == 0)
               continue;
-            // char key = (char)cv::waitKey(10);
-            // switch (key)
-            //   {
-            //   case 'q':
-            //   case 'Q':
-            //   case 27: //escape key
-            //     stop = true;
-            //     break;
-            //   default:
-            //     break;
-            //   }
-            // cv::Mat out;
-            // cv::drawKeypoints(curFrame, kp, out, cv::Scalar(255));
-            // imshow("f", out);
             res.convertTo(res, CV_32FC1);
-            float m = -FLT_MAX;
-            std::string c = "_ERROR_";
-            for (auto& s : svms )
+            std::string c = "unclassalbe";
+            for (auto& s : svms)
               {
-                double f = s.second->predict(res);
-                if (f > m)
+                if (s.first != "fight")
+                  continue;
+                auto r = s.second->predict(res);
+                if (r == 1)
                   {
-                    m = f;
-                    c = s.first;
+                    c = "fight";
+                    countFight++;
                   }
-                //std::cout << s.first << ": " << f << ", ";
+                else
+                  {
+                    c = "nofight";
+                    countNoFight++;
+                  }
               }
+            framNum++;
             {
               tbb::mutex::scoped_lock lock1(confMatM);
               confMatrix[className][c]++;
             }
-            // std::cout << std::endl;
-            // std::cout << "Is " << className << " found ";
-            // std::cout << c << " " << m << std::endl;
           }
         {
           tbb::mutex::scoped_lock lock2(countM);
-          count++;
+          std::cout << "Video " << std::setw(3) << ind << ' '  << fileName  << ' ' << countFight / framNum << "(fight) "<< countNoFight / framNum << "(nofight) ==> should be have been " << className << std::endl;
+          ind++;
         }
-        std::cout << count << "/" << files.size() << std::endl;
-      });
+      }
+      );
     for (auto& m : confMatrix)
       {
         auto tot = 0.0;

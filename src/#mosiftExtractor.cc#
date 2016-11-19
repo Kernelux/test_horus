@@ -6,6 +6,7 @@
 #include <vector>
 #include "tbb/tbb.h"
 
+
 const cv::Ptr<cv::Feature2D> MosiftExtractor::sift = cv::xfeatures2d::SIFT::create();
 
 void MosiftExtractor::compute(cv::InputArray image,
@@ -108,8 +109,8 @@ void MosiftExtractor::compute(cv::InputArray image,
                           for (auto x = keypoints.at(i).pt.x - 8; x < keypoints.at(i).pt.x + 8; x +=4)
                             {
                               // 4 * 4
-                              auto m = mosift.calcHist(pyrOptFlow.at(0), 4, x, y, keypoints.at(i).pt);
-                              mosift.concatenateFeatures(features.at(i), m);
+                              // auto m = motion.calcHist(pyrOptFlow.at(0), 4, x, y, keypoints.at(i).pt);
+                              // motion.concatenateFeatures(features.at(i), m);
                             }
                         };
                     });

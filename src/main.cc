@@ -47,7 +47,7 @@ int main(int ac, char* av[])
       Train t(files, 600);
       t.calculateDescriptor("features", true);
       t.clusterBow();
-      t.translateToBow("vocabulary.csv", "features");
+      t.translateToBow();
       t.svmTraining();
       return 0;
     }

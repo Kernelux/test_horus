@@ -128,7 +128,7 @@ void Train::translateToBow(std::string vocFile, std::string featureDir)
         CsvDumper dump;
         std::vector<cv::KeyPoint> kp;
         cv::Mat res;
-        cv::Ptr<cv::DescriptorMatcher> matcher(new cv::FlannBasedMatcher());
+        cv::Ptr<cv::DescriptorMatcher> matcher(new cv::BFMatcher(cv::NORM_L1));
         cv::Ptr<cv::DescriptorExtractor> mos = new Wld();
         cv::BOWImgDescriptorExtractor bowDE(mos, matcher);
         if (vocFile != "")
@@ -183,6 +183,7 @@ void Train::translateToBow(std::string vocFile, std::string featureDir)
 
 void Train::svmTraining(std::string featureDir)
 {
+  //Spec for 2 classes
   if (featureDir != "")
     {
       cv::Mat res;
@@ -212,19 +213,20 @@ void Train::svmTraining(std::string featureDir)
   tbb::parallel_for(size_t(0), classesName.size(),
                     [&](size_t i)
     {
+      //"pas propre ballec"
       auto& n = classesName.at(i);
       std::clog << "=> START OF " << n << std::endl;
       cv::Mat samples(0, resCols, resType);
-      cv::Mat labels(0, 1, CV_32FC1);
+      cv::Mat labels(0, 1, CV_32SC1);
       samples.push_back(codedMat[n]);
-      cv::Mat class_label = cv::Mat::ones(codedMat[n].rows, 1, CV_32FC1);
+      cv::Mat class_label = cv::Mat::ones(codedMat[n].rows, 1, CV_32SC1);
       labels.push_back(class_label);
       for (auto itCodeData = codedMat.begin(); itCodeData != codedMat.end(); itCodeData++)
         {
           if (n != itCodeData->first)
             {
               samples.push_back(codedMat[itCodeData->first]);
-              class_label = cv::Mat::ones(codedMat[itCodeData->first].rows, 1, CV_32FC1) * (-1);
+              class_label = cv::Mat::ones(codedMat[itCodeData->first].rows, 1, CV_32SC1) * (-1);
               labels.push_back(class_label);
             }
         }
@@ -242,13 +244,24 @@ void Train::svmTraining(std::string featureDir)
       coef_grid.logStep = 1;
       degree_grid = cv::ml::SVM::getDefaultGrid(cv::ml::SVM::DEGREE);
       degree_grid.logStep = 1;
-      svm->setType(cv::ml::SVM::EPS_SVR);
-      svm->setKernel(cv::ml::SVM::INTER);
+      //svm->setType(cv::ml::SVM::EPS_SVR);
+      svm->setType(cv::ml::SVM::C_SVC);
+      //svm->setKernel(cv::ml::SVM::INTER);
+      svm->setKernel(cv::ml::SVM::RBF);
+      // POLY/RBF
+      //svm->setGamma(0.001);
+      svm->setGamma(10.0);
+      svm->setCoef0(1000);
+      //svm->setKernel(cv::ml::SVM::POLY);
+      // POLY
+      svm->setDegree(2.0f);
+      //EPS/SVC
+      svm->setC(1000.0f);
+      svm->setP(0.01f);
       std::clog << "TRAINING SVM OF " << n << std::endl;
-      svm->setP(0.02f);
-      svm->trainAuto(cv::ml::TrainData::create(s32, cv::ml::ROW_SAMPLE, labels), 10,
-                     c_grid, gamma_grid, p_grid, nu_grid, coef_grid, degree_grid);
-      // svm->train(s32, cv::ml::ROW_SAMPLE, labels);
+      // svm->trainAuto(cv::ml::TrainData::create(s32, cv::ml::ROW_SAMPLE, labels), 10,
+      //                c_grid, gamma_grid, p_grid, nu_grid, coef_grid, degree_grid);
+      svm->train(s32, cv::ml::ROW_SAMPLE, labels);
       std::clog << "TRAINING SVM OF DONE " << n << std::endl;
       boost::filesystem::create_directory("SVM");
       boost::filesystem::create_directory("SVM/" + n);
@@ -257,7 +270,8 @@ void Train::svmTraining(std::string featureDir)
       CsvDumper dump;
       dump(s32, "SVM/" + n + "/samples");
       dump(labels, "SVM/" + n + "/labels");
-      std::clog << "DONE WITH " << n << std::endl;
+      std::clog << "DONE WITH " << n << "Supp Vector size " << svm->getSupportVectors().size()<< std::endl;
+      std::clog << "nb sample was " << samples.rows<<std::endl;
     }
                     );
 }
