@@ -3,6 +3,7 @@
 #include "mosiftExtractor.hh"
 #include "wld.hh"
 #include "csvReader.hh"
+#include <utility>
 
 Train::Train(std::vector<FileInfo> files, int bowk)
   :files(files),
@@ -48,6 +49,7 @@ void Train::calculateDescriptor(std::string directoryToSaveTo, bool shouldDump)
   CsvDumper dump;
   tbb::mutex _mut;
   int fileNum = 0;
+  std::map<std::string, cv::Mat> byFileDesc;
   tbb::parallel_for(size_t(0), files.size(),
                     [&](size_t i)
   // for(auto i = 0.0; i < files.size(); i++)
@@ -69,7 +71,15 @@ void Train::calculateDescriptor(std::string directoryToSaveTo, bool shouldDump)
                         }
                       else
                         std::cerr << "ERR: cannot open " << fi.fileName << std::endl;
+                      if (byFileDesc.find(fi.originalDirName) == std::end(byFileDesc))
+                        {
+                          std::cout << fi.originalDirName << std::endl;
+                          byFileDesc[fi.originalDirName] = cv::Mat(0, 256, CV_32F, 0);
+                        }
+                      for (const auto& f : features)
+                        byFileDesc[fi.originalDirName].push_back(f);
                       everyFeaturesByVideo.at(i) = features;
+                      std::cout << fi.originalDirName << std::endl;
                       if (everyFeaturesByVideo.at(i).size() != 0)
                         {
                           dump(everyFeaturesByVideo.at(i), fi.dirName + fi.fileName + ".csv");
@@ -96,6 +106,10 @@ void Train::calculateDescriptor(std::string directoryToSaveTo, bool shouldDump)
     {
       std::clog << "Dump total feature video" << std::endl;
       dump(everyFeatures, "totalFeatures.csv");
+      for (const auto& p : byFileDesc )
+        {
+          dump(p.second, p.first  + "TOTDESC.csv");
+        }
       std::clog << "Dump total feature video DONE" << std::endl;
     }
 }
@@ -231,7 +245,11 @@ void Train::svmTraining(std::string featureDir)
             }
         }
       cv::Mat s32;
-      samples.convertTo(s32, CV_32F);
+      samples.convertTo(s32, CV_32FC1);
+      // for (int i = 0; i < s32.rows; i++)
+      //   {
+      //     cv::normalize(s32.row(i), s32.row(i));
+      //   }
       cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
       cv::ml::ParamGrid c_grid, gamma_grid, p_grid, nu_grid, coef_grid, degree_grid;
       c_grid = cv::ml::SVM::getDefaultGrid(cv::ml::SVM::C);
@@ -245,19 +263,23 @@ void Train::svmTraining(std::string featureDir)
       degree_grid = cv::ml::SVM::getDefaultGrid(cv::ml::SVM::DEGREE);
       degree_grid.logStep = 1;
       //svm->setType(cv::ml::SVM::EPS_SVR);
-      svm->setType(cv::ml::SVM::C_SVC);
-      //svm->setKernel(cv::ml::SVM::INTER);
-      svm->setKernel(cv::ml::SVM::RBF);
+      svm->setType(cv::ml::SVM::NU_SVC);
+      //svm->setType(cv::ml::SVM::NU_SVC);
+      svm->setKernel(cv::ml::SVM::INTER);
+      //svm->setKernel(cv::ml::SVM::POLY);
       // POLY/RBF
       //svm->setGamma(0.001);
-      svm->setGamma(10.0);
-      svm->setCoef0(1000);
+      svm->setGamma(0.00001);
+      // svm->setGamma(1);
+      svm->setCoef0(1e4);
       //svm->setKernel(cv::ml::SVM::POLY);
       // POLY
-      svm->setDegree(2.0f);
+      svm->setDegree(8.0f);
       //EPS/SVC
-      svm->setC(1000.0f);
+      svm->setC(10000.0f);
       svm->setP(0.01f);
+      //svm->setNu(0.4f);
+      svm->setNu(0.25f);
       std::clog << "TRAINING SVM OF " << n << std::endl;
       // svm->trainAuto(cv::ml::TrainData::create(s32, cv::ml::ROW_SAMPLE, labels), 10,
       //                c_grid, gamma_grid, p_grid, nu_grid, coef_grid, degree_grid);

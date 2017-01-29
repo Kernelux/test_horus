@@ -11,7 +11,6 @@ void CsvDumper::dump(const cv::Mat& m, std::string fileName)
       dumpCSV << "\n";
     }
 }
-
 void CsvDumper::dump(const std::vector<cv::Mat>& mat, std::string fileName)
 {
   std::ofstream dumpCSV(fileName);

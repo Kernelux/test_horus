@@ -94,16 +94,16 @@ decltype(auto) Motion::calcHist(const cv::Mat& flowMat,
     {
       if (i >= flowMat.rows || i < 0)
         continue;
-        for (int j = botX; j < topX; j++)
-          {
-            if (j >= flowMat.cols || j < 0)
-              continue;
-            auto flow = flowMat.at<cv::Point2f>(i, j);
-            auto hyp = cv::norm(flow);
-            auto dist = cv::norm(original - cv::Point2f(j, i));
-            region = findRegionWithPrecalTrigo(flow.x, flow.y);
-            histo.at(region) = (histo.at(region))  + 10 * (hyp / dist);
-          }
+      for (int j = botX; j < topX; j++)
+        {
+          if (j >= flowMat.cols || j < 0)
+            continue;
+          auto flow = flowMat.at<cv::Point2f>(i, j);
+          auto hyp = cv::norm(flow);
+          auto dist = cv::norm(original - cv::Point2f(j, i));
+          region = findRegionWithPrecalTrigo(flow.x, flow.y);
+          histo.at(region) = (histo.at(region))  + 10 * (hyp / dist);
+        }
     }
   return histo;
 }

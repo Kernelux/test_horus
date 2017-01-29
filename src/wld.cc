@@ -68,6 +68,13 @@ decltype(auto) calcAngle(cv::Point& xc, cv::Point&& x) noexcept
     return M_PI;
   return acos(res / l);
 }
+
+double calcAngle2(cv::Point2f&& pt) noexcept
+{
+  if (pt.x == 0)
+    return atan(M_PI);
+  return atan2(pt.y, pt.x);
+}
 //Ameliorable de ouf ...
 decltype(auto) improvedWeber(const cv::Mat& input, const int& xPos, const int& yPos, const int& scale) noexcept
 {
@@ -83,7 +90,7 @@ decltype(auto) improvedWeber(const cv::Mat& input, const int& xPos, const int& y
   for (auto&& p : points)
     {
       X.at(current) = ((input.at<uchar>(p) + 1) - currentPoint);
-      angle = calcAngle(xc, cv::Point(p.x - xPos, p.y - yPos));
+      angle = calcAngle2(cv::Point(p.x - xPos, p.y - yPos));
       Jx.at(current) = angle;
       current++;
     }
@@ -113,20 +120,20 @@ decltype(auto) orientIndToAng(const int& ind) noexcept
     return (0.15 + 0.35) * 0.5f;
   if (ind == 3)
     return (0.35 + 0.5) * 0.5f;
-    if (ind == 4)
-      return (0.5 + 0.65) * 0.5f;
+  if (ind == 4)
+    return (0.5 + 0.65) * 0.5f;
   if (ind == 5)
     return (0.65 + 0.85) * 0.5f;
   if (ind == 6)
     return (0.85 + M_PI) * 0.5f;
   if (ind == 7)
     return (M_PI + 1.15 * M_PI) * 0.5f;
-    if (ind == 8)
-      return (1.15 * M_PI + 1.35 * M_PI) * 0.5f;
+  if (ind == 8)
+    return (1.15 * M_PI + 1.35 * M_PI) * 0.5f;
   if (ind == 9)
     return (1.35 * M_PI + 1.5 * M_PI) * 0.5f;
-    if (ind == 10)
-      return (1.5 * M_PI + 1.65 * M_PI) * 0.5f;
+  if (ind == 10)
+    return (1.5 * M_PI + 1.65 * M_PI) * 0.5f;
   if (ind == 11)
     return (1.65 * M_PI + 1.85 * M_PI) * 0.5f;
   return (1.85 * M_PI + 2.0 * M_PI) * 0.5f;
@@ -173,12 +180,12 @@ auto findGreatest(cv::Mat& memoMat,
     {
       if (i >= memoMat.rows || i < 0)
         continue;
-        for (int j = x - 1; j <= x + 1; ++j)
-          {
-            if (j >= memoMat.cols || j < 0)
-              continue;
-            greatest.at(mapOrientToInd(memoMat.at<cv::Point2f>(i, j).y) - 1) +=  1;
-          }
+      for (int j = x - 1; j <= x + 1; ++j)
+        {
+          if (j >= memoMat.cols || j < 0)
+            continue;
+          greatest.at(mapOrientToInd(memoMat.at<cv::Point2f>(i, j).y) - 1) +=  1;
+        }
     }
 }
 auto Wld::subCalcHistOrien(cv::Mat& memoMat,
@@ -193,14 +200,14 @@ auto Wld::subCalcHistOrien(cv::Mat& memoMat,
     {
       if (i >= memoMat.rows || i < 0)
         continue;
-        for (int j = x - 1; j <= x + 1; ++j)
-          {
-            if (j >= memoMat.cols || j < 0)
-              continue;
-            dist =  sqrt((xori - j) * (xori - j) + (yori - i) * (yori - i));
-            orien.at(mapOrientToInd(memoMat.at<cv::Point2f>(i, j).y) - 1) +=  100.0 * memoMat.at<cv::Point2f>(i, j).x / (dist + 0.1f);
-            //We do an offset of 12 to be in the motion part
-            auto f = motionMat.at<cv::Point2f>(i, j);
+      for (int j = x - 1; j <= x + 1; ++j)
+        {
+          if (j >= memoMat.cols || j < 0)
+            continue;
+          dist =  sqrt((xori - j) * (xori - j) + (yori - i) * (yori - i));
+          orien.at(mapOrientToInd(memoMat.at<cv::Point2f>(i, j).y) - 1) +=  100.0 * memoMat.at<cv::Point2f>(i, j).x / (dist + 0.1f);
+          //We do an offset of 12 to be in the motion part
+          auto f = motionMat.at<cv::Point2f>(i, j);
             orien.at(12 + mapOrientToInd(atan2(f.y, f.x)) - 1) +=  100.0 * cv::norm(motionMat.at<cv::Point2f>(i, j)) / (dist + 0.1f);
           }
     }

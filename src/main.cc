@@ -51,6 +51,25 @@ int main(int ac, char* av[])
       t.svmTraining();
       return 0;
     }
+    if (strcmp(av[1],"--eval") == 0)
+    {
+      std::vector<FileInfo> svmFiles;
+      for (auto& f : files)
+        if (f.fileName == "svm.xml")
+          svmFiles.push_back(f);
+      Predict p(svmFiles);
+      // std::cout << ac << std::endl;
+      if (ac == 5 && strcmp(av[4], "--live") == 0)
+        {
+          // std::cout << "live test" << std::endl;
+          p.predictUnique(std::string(av[3]));
+        }
+      else
+        {
+          files = crawler.retrieveFiles(av[3]);
+          p.predictUnique(files);
+        }
+    }
   //Predict
   if (strcmp(av[1],"--predict") == 0)
     {

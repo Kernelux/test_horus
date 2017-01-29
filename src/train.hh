@@ -4,6 +4,7 @@
 #include <opencv2/xfeatures2d.hpp>
 #include "tbb/tbb.h"
 #include "csvDumper.hh"
+#include <map>
 class Train
 {
 public:
@@ -16,6 +17,7 @@ public:
   std::vector<FileInfo> files;
   std::string featuresDir;
   std::vector<std::vector<cv::Mat>> everyFeaturesByVideo;
+  std::map<std::string, std::vector<std::vector<cv::Mat>>> everyFeaturesByVideo2;
   cv::Mat everyFeatures;
   cv::BOWKMeansTrainer bowk;
   cv::Mat voc;
